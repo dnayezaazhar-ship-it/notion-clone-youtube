@@ -7,7 +7,9 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useDocumentData } from "react-firebase-hooks/firestore";
 import Editor from "./Editor";
-
+import useOwner from "@/lib/useOwner";
+import DeleteDocument from "./DeleteDocument";
+import InviteUser from "./InviteUser";
 function Document({ id }: { id: string }) {
   const [data, loading, error] = useDocumentData(
     doc(db, "documents", id)
@@ -15,7 +17,7 @@ function Document({ id }: { id: string }) {
 
   const [input, setInput] = useState("");
   const [isUpdating, startTransition] = useTransition();
- 
+  const isOwner=useOwner();
 
   useEffect(() => {
     if (data) {
@@ -36,7 +38,7 @@ function Document({ id }: { id: string }) {
   };
 
   return (
-    <div>
+    <div className="flex-1 h-full bg-white p-5">
       <div className="flex max-w-6xl mx-auto justify-between pb-5">
         <form
           className="flex flex-1 space-x-2"
@@ -51,7 +53,14 @@ function Document({ id }: { id: string }) {
             {isUpdating ? "Updating..." : "Update"}
           </Button>
 
-          {/* isOwner && InviteUser, DeleteDocument */}
+{isOwner && (
+  <>
+    
+    < InviteUser />
+    <DeleteDocument />
+  </>
+)}
+        
         </form>
       </div>
 
