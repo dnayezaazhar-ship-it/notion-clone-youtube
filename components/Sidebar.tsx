@@ -117,7 +117,7 @@ export default function Sidebar() {
 
       {groupedData.editor.length > 0 && (
         <div className="mt-2 px-4">
-          <h2 className="text-sm font-semibold text-gray-500">
+          <h2 className="text-sm font-semibold text-gray-500 text-center">
             Shared with Me
           </h2>
 
