@@ -116,9 +116,9 @@ function ManageUsers() {
           {currentResult?.members.map((member) => (
             <div
               key={member.email}
-              className="flex items-center justify-between"
+              className="flex flex-wrap items-center justify-between gap-2"
             >
-              <p className="font-light">{member.email}</p>
+              <p className="min-w-0 break-all font-light">{member.email}</p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm">
                   {member.role}

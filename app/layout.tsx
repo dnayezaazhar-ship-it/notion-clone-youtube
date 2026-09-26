@@ -20,10 +20,10 @@ export default function RootLayout({
       <body>
         <Header />
 
-        <div className="flex  min-h-screen">
+        <div className="flex min-h-screen min-w-0">
           <Sidebar />
 
-          <div className="flex-1 p-4 bg-gray-100 overflow-y-auto scrollbar-hide">
+          <div className="min-w-0 flex-1 overflow-y-auto bg-gray-100 px-2 py-3 scrollbar-hide sm:p-4">
             {children}
           </div>
         </div>

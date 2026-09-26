@@ -215,7 +215,7 @@ function TranslateDocument({ editor }: TranslateDocumentProps) {
         {/* LANGUAGE FORM - BOTTOM */}
         <form
           onSubmit={handleTranslate}
-          className="mt-2 flex items-center gap-2"
+          className="mt-2 flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center"
         >
           <Select
             value={language}
@@ -223,7 +223,7 @@ function TranslateDocument({ editor }: TranslateDocumentProps) {
               setLanguage(value as Language)
             }
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full min-w-0">
               <SelectValue placeholder="Select a Language" />
             </SelectTrigger>
 

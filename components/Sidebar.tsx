@@ -129,15 +129,15 @@ export default function Sidebar() {
   );
 
   return (
-    <div className="relative bg-gray-200 p-2 md:p-5">
+    <div className="relative shrink-0 bg-gray-200 p-2 md:p-5">
       <Sheet>
-        <SheetTrigger aria-label="Open navigation menu">
-          <MenuIcon
-            className="rounded-lg p-2 hover:opacity-30"
-            size={40}
-          />
+        <SheetTrigger
+          aria-label="Open navigation menu"
+          className="rounded-lg p-2 hover:bg-gray-300"
+        >
+          <MenuIcon className="size-6 md:size-10" />
         </SheetTrigger>
-        <SheetContent side="left">
+        <SheetContent side="left" className="overflow-y-auto">
           <SheetHeader className="flex flex-col items-center justify-center py-4">
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
@@ -145,7 +145,7 @@ export default function Sidebar() {
         </SheetContent>
       </Sheet>
 
-      <div className="hidden md:inline">{menuOptions}</div>
+      <div className="hidden md:block">{menuOptions}</div>
     </div>
   );
 }

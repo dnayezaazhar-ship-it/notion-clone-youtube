@@ -81,9 +81,9 @@ function ChatToDocument({ editor }: ChatToDocumentProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" aria-label="Chat to Document">
           <MessageCircleCode className="mr-2 h-4 w-4" />
-          Chat to Document
+          <span className="hidden sm:inline">Chat to Document</span>
         </Button>
       </DialogTrigger>
 
@@ -130,7 +130,7 @@ function ChatToDocument({ editor }: ChatToDocumentProps) {
 
         {/* Question Form */}
         <form
-          className="flex gap-2"
+          className="flex min-w-0 flex-col gap-2 sm:flex-row"
           onSubmit={handleAskQuestion}
         >
           <Input

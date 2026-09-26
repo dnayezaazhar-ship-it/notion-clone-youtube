@@ -120,10 +120,34 @@
   * {
     @apply border-border outline-ring/50;
     }
+  html,
   body {
     @apply bg-background text-foreground;
+    max-width: 100%;
+    overflow-x: clip;
     }
   html {
     @apply font-sans;
     }
+}
+
+.bn-editor {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.bn-editor [data-content-type="table"] .tableWrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.bn-editor pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 639px) {
+  .bn-editor {
+    padding-inline: 12px;
+  }
 }

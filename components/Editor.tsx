@@ -33,8 +33,8 @@ function Editor() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4">
-      <div className="mb-6 flex items-center justify-end gap-2">
+    <div className="mx-auto w-full min-w-0 max-w-6xl px-0 sm:px-4">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2 sm:mb-6">
         <TranslateDocument editor={editor} />
         <ChatToDocument editor={editor} />
 

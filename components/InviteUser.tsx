@@ -62,7 +62,7 @@ function InviteUser() {
           </DialogDescription>
         </DialogHeader>
 
-        <form className="flex gap-2" onSubmit={handleInvite}>
+        <form className="flex min-w-0 flex-col gap-2 sm:flex-row" onSubmit={handleInvite}>
           <Input
             type="email"
             placeholder="Email"

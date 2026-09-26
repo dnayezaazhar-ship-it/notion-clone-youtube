@@ -13,24 +13,26 @@ function Header() {
   const { user } = useUser();
 
   return (
-    <div className="flex items-center justify-between p-5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 p-3 sm:p-5 md:flex md:justify-between">
       {/* Left Side */}
-      <div>
+      <div className="min-w-0">
         {user && (
-          <h1 className="text-xl font-bold">
+          <h1 className="truncate text-lg font-bold sm:text-xl">
             {user.firstName}&apos;s Space
           </h1>
         )}
       </div>
 
       {/* Center */}
-      <Breadcrumbs />
+      <div className="col-span-2 row-start-2 min-w-0 md:col-span-1 md:row-auto">
+        <Breadcrumbs />
+      </div>
 
       {/* Right Side - Logo / User */}
-      <div>
+      <div className="justify-self-end">
         <Show when="signed-out">
           <SignInButton mode="modal">
-            <button className="rounded-lg bg-black px-4 py-2 text-white">
+            <button className="rounded-lg bg-black px-3 py-2 text-sm text-white sm:px-4 sm:text-base">
               Sign In
             </button>
           </SignInButton>

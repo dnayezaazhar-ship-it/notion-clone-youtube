@@ -139,18 +139,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const memberships = await adminDb
-    .collectionGroup("rooms")
-    .where("roomId", "==", roomId)
+  const membership = await adminDb
+    .collection("users")
+    .doc(email)
+    .collection("rooms")
+    .doc(roomId)
     .get();
-  const membership = memberships.docs.find(
-    (document) =>
-      typeof document.data().userId === "string" &&
-      document.data().userId.trim().toLowerCase() === email
-  );
-  const role = membership?.data().role;
 
-  if (!membership || (role !== "owner" && role !== "editor")) {
+  const membershipData = membership.data();
+  const membershipEmail =
+    typeof membershipData?.userId === "string"
+      ? membershipData.userId.trim().toLowerCase()
+      : null;
+  const role = membershipData?.role;
+
+  if (
+    !membership.exists ||
+    membershipEmail !== email ||
+    (role !== "owner" && role !== "editor")
+  ) {
     return NextResponse.json(
       { message: "You are not a member of this room" },
       { status: 403 }

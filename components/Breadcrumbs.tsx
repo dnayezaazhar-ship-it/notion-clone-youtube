@@ -14,7 +14,7 @@ function Breadcrumbs() {
   const segments = pathname.split("/").filter(Boolean);
 
   return (
-    <Breadcrumb> 
+    <Breadcrumb className="min-w-0 max-w-full">
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink href="/">Home</BreadcrumbLink>
@@ -32,9 +32,12 @@ function Breadcrumbs() {
               : segment;
 
           return (
-            <div key={segment} className="flex items-center space-x-1">
-              <BreadcrumbItem>
-                <BreadcrumbLink href={href}>
+            <div key={`${segment}-${index}`} className="flex min-w-0 items-center space-x-1">
+              <BreadcrumbItem className="min-w-0">
+                <BreadcrumbLink
+                  className="max-w-[min(45vw,12rem)] truncate md:max-w-none"
+                  href={href}
+                >
                   {label}
                 </BreadcrumbLink>
               </BreadcrumbItem>

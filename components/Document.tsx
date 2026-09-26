@@ -101,11 +101,15 @@ function Document({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex-1 h-full bg-white p-5">
-      <div className="flex max-w-6xl mx-auto justify-between pb-5">
-        <form className="flex flex-1 space-x-2" onSubmit={updateTitle}>
+    <div className="h-full min-w-0 flex-1 bg-white p-3 sm:p-5">
+      <div className="mx-auto flex max-w-6xl justify-between pb-5">
+        <form
+          className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:flex-1"
+          onSubmit={updateTitle}
+        >
           <Input
             aria-label="Document title"
+            className="min-w-0"
             value={input}
             onChange={(event) =>
               setTitleDraft({ id, value: event.target.value })
@@ -115,15 +119,15 @@ function Document({ id }: { id: string }) {
             {isUpdating ? "Updating..." : "Update"}
           </Button>
           {data.role === "owner" && (
-            <>
+            <div className="col-span-2 flex min-w-0 gap-2 sm:contents">
               <InviteUser />
               <DeleteDocument />
-            </>
+            </div>
           )}
         </form>
       </div>
 
-      <div className="flex max-w-6xl mx-auto justify-between items-center mb-5">
+      <div className="mx-auto mb-5 flex max-w-6xl flex-wrap items-center justify-between gap-3">
         <ManageUsers />
         <Avatars />
       </div>
