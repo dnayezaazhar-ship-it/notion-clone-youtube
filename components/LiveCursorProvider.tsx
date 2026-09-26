@@ -4,7 +4,7 @@ import { useMyPresence, useOthers } from "@liveblocks/react/suspense";
 import { PointerEvent } from "react";
 import FollowPointer from "./FollowPointer";
 function LiveCursorProvider({ children }: { children: React.ReactNode }) {
-  const [myPresence, updateMyPresence] = useMyPresence();
+  const [, updateMyPresence] = useMyPresence();
   const others = useOthers();
 
   function handlePointerMove(e: PointerEvent<HTMLDivElement>) {

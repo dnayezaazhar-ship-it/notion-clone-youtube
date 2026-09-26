@@ -1,5 +1,23 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Firebase Admin credentials
+
+The Firebase client configuration is used only by browser-facing Firestore
+features. Server-side Firebase Admin credentials must remain private. Configure
+one of these options in the deployment environment:
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON` with the service-account JSON value.
+- `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
+- Application Default Credentials in Google Cloud.
+
+For local development, the ignored `service_key.json` file is read only by the
+server-side Firebase Admin module. Do not commit it. The Admin SDK falls back
+to Application Default Credentials when no explicit credential is configured.
+
+Document content is synchronized and persisted by the BlockNote Liveblocks
+integration in each Liveblocks room; Firestore stores document titles and room
+membership.
+
 ## Getting Started
 
 First, run the development server:

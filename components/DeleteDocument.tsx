@@ -35,21 +35,22 @@ function DeleteDocument() {
         if (success) {
           setIsOpen(false);
           router.replace("/");
-          toast.success("Room Deleted Succesfully!")
+          toast.success("Document deleted.");
         } else {
-           toast.error("Failed to delete room!");
+          toast.error("Could not delete the document. Only its owner can delete it.");
         }
-      } catch (error) {
-        console.error("Failed to delete document:", error);
+      } catch (deleteError) {
+        console.error("Failed to delete document:", deleteError);
+        toast.error("Could not delete the document.");
       }
     });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Button asChild variant="destructive">
-        <DialogTrigger>Delete</DialogTrigger>
-      </Button>
+      <DialogTrigger asChild>
+        <Button type="button" variant="destructive">Delete</Button>
+      </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>

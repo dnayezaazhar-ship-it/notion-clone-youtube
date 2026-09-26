@@ -18,7 +18,7 @@ function Header() {
       <div>
         {user && (
           <h1 className="text-xl font-bold">
-            {user.firstName}'s Space
+            {user.firstName}&apos;s Space
           </h1>
         )}
       </div>

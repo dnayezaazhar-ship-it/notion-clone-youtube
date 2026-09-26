@@ -1,80 +1,134 @@
 "use client";
 
-import { useEffect, useState, useTransition, FormEvent } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
+import { getDocument, updateDocumentTitle } from "@/actions/action";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/firebase";
-import { useDocumentData } from "react-firebase-hooks/firestore";
 import Editor from "./Editor";
-import useOwner from "@/lib/useOwner";
 import DeleteDocument from "./DeleteDocument";
 import InviteUser from "./InviteUser";
 import ManageUsers from "./ManageUsers";
 import Avatars from "./Avatars";
-function Document({ id }: { id: string }) {
-  const [data, loading, error] = useDocumentData(
-    doc(db, "documents", id)
-  );
+import LoadingSpinner from "./LoadingSpinner";
+import { toast } from "sonner";
 
-  const [input, setInput] = useState("");
+type DocumentData = {
+  title: string;
+  role: "owner" | "editor";
+};
+
+function Document({ id }: { id: string }) {
+  const [result, setResult] = useState<{
+    id: string;
+    data?: DocumentData;
+    error?: boolean;
+  } | null>(null);
+  const [titleDraft, setTitleDraft] = useState<{
+    id: string;
+    value: string;
+  } | null>(null);
   const [isUpdating, startTransition] = useTransition();
-  const isOwner=useOwner();
 
   useEffect(() => {
-    if (data) {
-      setInput(data.title);
-    }
-  }, [data]);
+    let cancelled = false;
 
-  const updateTitle = (e: FormEvent) => {
-    e.preventDefault();
-
-    if (input.trim()) {
-      startTransition(async () => {
-        await updateDoc(doc(db, "documents", id), {
-          title: input,
-        });
+    getDocument(id)
+      .then((document) => {
+        if (!cancelled) {
+          setResult({ id, data: document });
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Could not load document:", error);
+        if (!cancelled) {
+          setResult({ id, error: true });
+        }
       });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const currentResult = result?.id === id ? result : null;
+  const data = currentResult?.data;
+  const loading = !currentResult;
+  const loadError = currentResult?.error ?? false;
+  const input =
+    titleDraft?.id === id ? titleDraft.value : data?.title ?? "";
+
+  const updateTitle = (event: FormEvent) => {
+    event.preventDefault();
+
+    const title = input.trim();
+
+    if (!title) {
+      toast.error("A document title is required.");
+      return;
     }
+
+    startTransition(async () => {
+      try {
+        const updated = await updateDocumentTitle(id, title);
+        setResult((current) =>
+          current?.id === id && current.data
+            ? {
+                id,
+                data: { ...current.data, title: updated.title },
+              }
+            : current
+        );
+        setTitleDraft(null);
+        toast.success("Document title updated.");
+      } catch (error) {
+        console.error("Error updating document title:", error);
+        toast.error("Could not update the document title.");
+      }
+    });
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (loadError || !data) {
+    return (
+      <p role="alert" className="p-5 text-center text-destructive">
+        Could not load this document. It may not exist, or your account may not
+        have access.
+      </p>
+    );
+  }
 
   return (
     <div className="flex-1 h-full bg-white p-5">
       <div className="flex max-w-6xl mx-auto justify-between pb-5">
-        <form
-          className="flex flex-1 space-x-2"
-          onSubmit={updateTitle}
-        >
+        <form className="flex flex-1 space-x-2" onSubmit={updateTitle}>
           <Input
+            aria-label="Document title"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(event) =>
+              setTitleDraft({ id, value: event.target.value })
+            }
           />
-
           <Button disabled={isUpdating} type="submit">
             {isUpdating ? "Updating..." : "Update"}
           </Button>
-
-{isOwner && (
-  <>
-    
-    < InviteUser />
-    <DeleteDocument />
-  </>
-)}
-        
+          {data.role === "owner" && (
+            <>
+              <InviteUser />
+              <DeleteDocument />
+            </>
+          )}
         </form>
       </div>
 
       <div className="flex max-w-6xl mx-auto justify-between items-center mb-5">
-        <ManageUsers/>
-        
+        <ManageUsers />
         <Avatars />
       </div>
-      <hr className="pb-10"/>
-
-     
-      <Editor/>
+      <hr className="pb-10" />
+      <Editor />
     </div>
   );
 }

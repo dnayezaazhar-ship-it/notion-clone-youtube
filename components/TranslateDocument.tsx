@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { BotIcon, LanguagesIcon } from "lucide-react";
 import { toast } from "sonner";
 import Markdown from "react-markdown";
+import { BlockNoteEditor } from "@blocknote/core";
 
 type Language =
   | "english"
@@ -50,7 +51,7 @@ const languages: Language[] = [
 ];
 
 type TranslateDocumentProps = {
-  editor: any;
+  editor: BlockNoteEditor;
 };
 
 function TranslateDocument({ editor }: TranslateDocumentProps) {
@@ -97,6 +98,7 @@ function TranslateDocument({ editor }: TranslateDocumentProps) {
               textParts.push(item);
             } else if (
               typeof item === "object" &&
+              "text" in item &&
               typeof item.text === "string"
             ) {
               textParts.push(item.text);
@@ -186,7 +188,7 @@ function TranslateDocument({ editor }: TranslateDocumentProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-150">
         {/* Header */}
         <DialogHeader>
           <DialogTitle>Translate the Document</DialogTitle>
@@ -201,7 +203,7 @@ function TranslateDocument({ editor }: TranslateDocumentProps) {
         {(isPending || translation) && (
           <div className="flex max-h-[300px] flex-col gap-3 overflow-y-auto rounded-md bg-gray-100 p-5">
             <div className="flex items-center gap-2">
-              <BotIcon className="h-8 w-8 flex-shrink-0" />
+              <BotIcon className="h-8 w-8 shrink-0" />
 
               <p className="font-bold">
                 GPT Says:
@@ -259,4 +261,3 @@ function TranslateDocument({ editor }: TranslateDocumentProps) {
 }
 
 export default TranslateDocument;
-

@@ -1,124 +1,9 @@
-/*"use client";
-
-import { Button } from "./ui/button";
-import { useState, useTransition } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { usePathname } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
-import useOwner from "@/lib/useOwner";
-import { useCollection } from "react-firebase-hooks/firestore";
-import { collectionGroup, query, where } from "firebase/firestore";
-import { db } from "@/firebase";
-import { deleteUser, removeUserFromDocument } from "@/actions/action";
-import { toast } from "sonner";
-
-function ManageUsers() {
-  const { user } = useUser();
-  const { isOwner } = useOwner();
-
-  const pathname = usePathname();
-  const roomId = pathname.split("/").pop();
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-
-  const [usersInRoom] = useCollection(
-    user && roomId
-      ? query(
-          collectionGroup(db, "rooms"),
-          where("roomId", "==", roomId)
-        )
-      : undefined
-  );
-
- const handleDelete = (userId: string) => {
-  startTransition(async () => {
-    if (!user) return;
-
-    const { success } = await removeUserFromDocument(room.id, userId);
-
-    if (success) {
-      toast.success("User removed from room successfully!");
-    } else {
-      toast.error("Failed to remove user from room!");
-    }
-  });
-};
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          Users ({usersInRoom?.docs.length || 0})
-        </Button>
-      </DialogTrigger>
-
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Users with Access</DialogTitle>
-
-          <DialogDescription>
-            Below is a list of users who have access to this document.
-          </DialogDescription>
-        </DialogHeader>
-
-        <hr className="my-2" />
-
-        <div className="space-y-3">
-          {usersInRoom?.docs.map((doc) => {
-            const data = doc.data();
-
-            return (
-              <div
-                key={data.userId}
-                className="flex items-center justify-between"
-              >
-                <p className="font-light">
-                  {data.userId === user?.primaryEmailAddress?.emailAddress
-                    ? `You (${data.userId})`
-                    : data.userId}
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
-                    {data.role}
-                  </Button>
-
-                  {isOwner &&
-                    data.userId !==
-                      user?.primaryEmailAddress?.emailAddress && (
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleDelete(data.userId)}
-                        disabled={isPending}
-                        size="sm"
-                      >
-                        {isPending ? "Removing..." : "X"}
-                      </Button>
-                    )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export default ManageUsers;*/
-
 "use client";
 
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { usePathname } from "next/navigation";
+import { getDocumentMembers, removeUserFromDocument } from "@/actions/action";
 import { Button } from "./ui/button";
-import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -127,61 +12,73 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { usePathname } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
-import { useCollection } from "react-firebase-hooks/firestore";
-import { collectionGroup, query, where } from "firebase/firestore";
-import { db } from "@/firebase";
-import { removeUserFromDocument } from "@/actions/action";
 import { toast } from "sonner";
 
+type Member = {
+  email: string;
+  role: "owner" | "editor";
+};
+
 function ManageUsers() {
-  const { user } = useUser();
-
   const pathname = usePathname();
-  const roomId = pathname.split("/").pop();
-
+  const roomId = pathname.split("/").pop() ?? "";
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [result, setResult] = useState<{
+    roomId: string;
+    isOwner: boolean;
+    members: Member[];
+  } | null>(null);
+  const [error, setError] = useState(false);
 
-  const [usersInRoom] = useCollection(
-    user && roomId
-      ? query(
-          collectionGroup(db, "rooms"),
-          where("roomId", "==", roomId)
-        )
-      : undefined
-  );
+  const loadMembers = useCallback(async () => {
+    if (!roomId) return;
 
-  // Current user's email
-  const currentUserEmail =
-    user?.primaryEmailAddress?.emailAddress;
+    try {
+      const data = await getDocumentMembers(roomId);
+      setResult({ roomId, ...data });
+      setError(false);
+    } catch (loadError) {
+      console.error("Could not load document members:", loadError);
+      setError(true);
+    }
+  }, [roomId]);
 
-  // Find current user's room data
-  const currentUserRoom = usersInRoom?.docs.find(
-    (doc) => doc.data().userId === currentUserEmail
-  );
+  useEffect(() => {
+    let cancelled = false;
 
-  // Check if current user is owner
-  const isCurrentUserOwner =
-    currentUserRoom?.data().role === "owner";
+    if (!roomId) return;
+
+    getDocumentMembers(roomId)
+      .then((data) => {
+        if (!cancelled) {
+          setResult({ roomId, ...data });
+          setError(false);
+        }
+      })
+      .catch((loadError: unknown) => {
+        console.error("Could not load document members:", loadError);
+        if (!cancelled) {
+          setError(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId]);
+
+  const currentResult = result?.roomId === roomId ? result : null;
 
   const handleDelete = (email: string) => {
-    if (!roomId) {
-      toast.error("Room ID not found");
-      return;
-    }
-
     startTransition(async () => {
-      const { success } = await removeUserFromDocument(
-        roomId,
-        email
-      );
+      const response = await removeUserFromDocument(roomId, email);
 
-      if (success) {
-        toast.success("User removed from room successfully!");
+      if (response.success) {
+        toast.success("User removed from document.");
+        await loadMembers();
       } else {
-        toast.error("Failed to remove user from room!");
+        toast.error("Could not remove this user.");
       }
     });
   };
@@ -190,14 +87,13 @@ function ManageUsers() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          Users ({usersInRoom?.docs.length || 0})
+          Users ({currentResult?.members.length ?? 0})
         </Button>
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Users with Access</DialogTitle>
-
           <DialogDescription>
             Below is a list of users who have access to this document.
           </DialogDescription>
@@ -206,40 +102,40 @@ function ManageUsers() {
         <hr className="my-2" />
 
         <div className="space-y-3">
-          {usersInRoom?.docs.map((doc) => {
-            const data = doc.data();
-
-            return (
-              <div
-                key={data.userId}
-                className="flex items-center justify-between"
-              >
-                <p className="font-light">
-                  {data.userId === currentUserEmail
-                    ? `You (${data.userId})`
-                    : data.userId}
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
-                    {data.role}
+          {!currentResult && !error && (
+            <p role="status">Loading document members...</p>
+          )}
+          {error && (
+            <p role="alert" className="text-destructive">
+              Could not load document members.
+            </p>
+          )}
+          {currentResult?.members.length === 0 && (
+            <p>No collaborators found.</p>
+          )}
+          {currentResult?.members.map((member) => (
+            <div
+              key={member.email}
+              className="flex items-center justify-between"
+            >
+              <p className="font-light">{member.email}</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm">
+                  {member.role}
+                </Button>
+                {currentResult.isOwner && member.role !== "owner" && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDelete(member.email)}
+                    disabled={isPending}
+                    size="sm"
+                  >
+                    {isPending ? "Removing..." : "X"}
                   </Button>
-
-                  {isCurrentUserOwner &&
-                    data.userId !== currentUserEmail && (
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleDelete(data.userId)}
-                        disabled={isPending}
-                        size="sm"
-                      >
-                        {isPending ? "Removing..." : "X"}
-                      </Button>
-                    )}
-                </div>
+                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>

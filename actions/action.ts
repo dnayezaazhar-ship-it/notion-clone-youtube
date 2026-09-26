@@ -1,187 +1,10 @@
-/*"use server";
-
-import { adminDb } from "@/firebase-admin";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import liveblocks from "@/lib/liveblocks";
-
-export async function createNewDocument() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
-  const user = await currentUser();
-
-  const email = user?.emailAddresses?.[0]?.emailAddress;
-
-  if (!email) {
-    throw new Error("User email not found");
-  }
-
-  const docCollectionRef = adminDb.collection("documents");
-
-  const docRef = await docCollectionRef.add({
-    title: "New Doc",
-  });
-
-  await adminDb
-    .collection("users")
-    .doc(email)
-    .collection("rooms")
-    .doc(docRef.id)
-    .set({
-      userId: email,
-      role: "owner",
-      createdAt: new Date(),
-      roomId: docRef.id,
-    });
-
-  return {
-    docId: docRef.id,
-  };
-}
-
-export async function deleteDocument(roomId: string) {
-  try {
-    // Check authentication
-    const { userId } = await auth();
-
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-
-    console.log("deleteDocument", roomId);
-
-    // Delete the document
-    await adminDb.collection("documents").doc(roomId).delete();
-
-    // Find all room references
-    const query = await adminDb
-      .collectionGroup("rooms")
-      .where("roomId", "==", roomId)
-      .get();
-
-    const batch = adminDb.batch();
-
-    // Delete room references from all users
-    query.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-
-    // Delete Liveblocks room
-    await liveblocks.deleteRoom(roomId);
-
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error("Error deleting document:", error);
-
-    return {
-      success: false,
-    };
-  }
-}
-
-export async function inviteUserToDocument(
-  roomId: string,
-  email: string
-) {
-  try {
-    // Check authentication
-    const { userId } = await auth();
-
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-
-    // Get current logged-in user
-    const user = await currentUser();
-
-    const currentUserEmail =
-      user?.emailAddresses?.[0]?.emailAddress;
-
-    if (!currentUserEmail) {
-      throw new Error("Current user email not found");
-    }
-
-    console.log("inviteUserToDocument", roomId, email);
-
-    // Check if current user has access to this room
-    const currentUserRoom = await adminDb
-      .collection("users")
-      .doc(currentUserEmail)
-      .collection("rooms")
-      .doc(roomId)
-      .get();
-
-    if (!currentUserRoom.exists) {
-      throw new Error("You don't have access to this document");
-    }
-
-    // Check invited email
-    const invitedEmail = email.trim().toLowerCase();
-
-    if (!invitedEmail) {
-      throw new Error("Email is required");
-    }
-
-    // Add user to room as editor
-    await adminDb
-      .collection("users")
-      .doc(invitedEmail)
-      .collection("rooms")
-      .doc(roomId)
-      .set({
-        userId: invitedEmail,
-        role: "editor",
-        createdAt: new Date(),
-        roomId: roomId,
-      });
-
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error("Error inviting user:", error);
-
-    return {
-      success: false,
-    };
-  }
-}
-export async function removeUserFromDocument(roomId: string, email: string) {
-  auth().protect(); // Ensure the user is authenticated
-
-  console.log("removeUserFromDocument", roomId, email);
-
-  try {
-    await adminDb
-      .collection("users")
-      .doc(email)
-      .collection("rooms")
-      .doc(roomId)
-      .delete();
-
-    return { success: true };
-  } catch (error) {
-    console.error(error);
-    return { success: false };
-  }
-}*/
-
-
-
 "use server";
 
 import { adminDb } from "@/firebase-admin";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import liveblocks from "@/lib/liveblocks";
 
-export async function createNewDocument() {
+async function getAuthenticatedUser() {
   const { userId } = await auth();
 
   if (!userId) {
@@ -189,70 +12,212 @@ export async function createNewDocument() {
   }
 
   const user = await currentUser();
-
-  const email = user?.emailAddresses?.[0]?.emailAddress;
+  const email = user?.primaryEmailAddress?.emailAddress
+    .trim()
+    .toLowerCase();
 
   if (!email) {
-    throw new Error("User email not found");
+    throw new Error("A verified email address is required");
   }
 
-  const docCollectionRef = adminDb.collection("documents");
+  return { userId, user, email };
+}
 
-  const docRef = await docCollectionRef.add({
-    title: "New Doc",
-  });
+async function findRoomMembership(email: string, roomId: string) {
+  const memberships = await adminDb
+    .collectionGroup("rooms")
+    .where("roomId", "==", roomId)
+    .get();
 
-  await adminDb
+  return memberships.docs.find(
+    (membership) =>
+      typeof membership.data().userId === "string" &&
+      membership.data().userId.trim().toLowerCase() === email
+  );
+}
+
+export async function getDocument(roomId: string) {
+  const { email } = await getAuthenticatedUser();
+  const membership = await findRoomMembership(email, roomId);
+
+  if (
+    !membership ||
+    (membership.data().role !== "owner" &&
+      membership.data().role !== "editor")
+  ) {
+    throw new Error("You do not have access to this document");
+  }
+
+  const document = await adminDb.collection("documents").doc(roomId).get();
+
+  if (!document.exists) {
+    throw new Error("Document not found");
+  }
+
+  const title = document.data()?.title;
+
+  return {
+    title: typeof title === "string" ? title : "Untitled",
+    role: membership.data().role as "owner" | "editor",
+  };
+}
+
+export async function getMyDocuments() {
+  const { email } = await getAuthenticatedUser();
+  const memberships = await adminDb
     .collection("users")
     .doc(email)
     .collection("rooms")
-    .doc(docRef.id)
-    .set({
-      userId: email,
-      role: "owner",
-      createdAt: new Date(),
-      roomId: docRef.id,
-    });
+    .get();
+
+  const documents = await Promise.all(
+    memberships.docs.map(async (membership) => {
+      const roomId = membership.id;
+      const roomData = membership.data();
+
+      if (roomData.role !== "owner" && roomData.role !== "editor") {
+        return null;
+      }
+
+      const document = await adminDb
+        .collection("documents")
+        .doc(roomId)
+        .get();
+
+      if (!document.exists) {
+        return null;
+      }
+
+      const title = document.data()?.title;
+
+      return {
+        id: roomId,
+        role: roomData.role,
+        title: typeof title === "string" ? title : "Untitled",
+      };
+    })
+  );
+
+  return documents.filter((document) => document !== null);
+}
+
+export async function getDocumentMembers(roomId: string) {
+  const { email } = await getAuthenticatedUser();
+  const currentMembership = await findRoomMembership(email, roomId);
+
+  if (!currentMembership) {
+    throw new Error("You do not have access to this document");
+  }
+
+  const memberships = await adminDb
+    .collectionGroup("rooms")
+    .where("roomId", "==", roomId)
+    .get();
 
   return {
-    docId: docRef.id,
+    isOwner: currentMembership.data().role === "owner",
+    members: memberships.docs.flatMap((membership) => {
+      const data = membership.data();
+
+      if (
+        typeof data.userId !== "string" ||
+        (data.role !== "owner" && data.role !== "editor")
+      ) {
+        return [];
+      }
+
+      return [{ email: data.userId.trim().toLowerCase(), role: data.role }];
+    }),
   };
+}
+
+export async function updateDocumentTitle(roomId: string, title: string) {
+  const { email } = await getAuthenticatedUser();
+  const membership = await findRoomMembership(email, roomId);
+
+  if (!membership) {
+    throw new Error("You do not have access to this document");
+  }
+
+  const trimmedTitle = title.trim();
+
+  if (!trimmedTitle) {
+    throw new Error("A document title is required");
+  }
+
+  await adminDb.collection("documents").doc(roomId).update({
+    title: trimmedTitle,
+  });
+
+  return { title: trimmedTitle };
+}
+
+export async function getDocumentMembership(roomId: string) {
+  const { email } = await getAuthenticatedUser();
+  const membership = await findRoomMembership(email, roomId);
+
+  if (!membership) {
+    throw new Error("You do not have access to this document");
+  }
+
+  return { role: membership.data().role };
+}
+
+export async function createNewDocument() {
+  const { email } = await getAuthenticatedUser();
+  const documentRef = adminDb.collection("documents").doc();
+  const membershipRef = adminDb
+    .collection("users")
+    .doc(email)
+    .collection("rooms")
+    .doc(documentRef.id);
+  const batch = adminDb.batch();
+
+  batch.set(documentRef, { title: "New Doc" });
+  batch.set(membershipRef, {
+    userId: email,
+    role: "owner",
+    createdAt: new Date(),
+    roomId: documentRef.id,
+  });
+
+  await batch.commit();
+
+  return { docId: documentRef.id };
 }
 
 export async function deleteDocument(roomId: string) {
   try {
-    const { userId } = await auth();
+    const { email } = await getAuthenticatedUser();
+    const membership = await findRoomMembership(email, roomId);
 
-    if (!userId) {
-      throw new Error("Unauthorized");
+    if (!membership || membership.data().role !== "owner") {
+      throw new Error("Only the document owner can delete it");
     }
 
-    await adminDb.collection("documents").doc(roomId).delete();
+    const documentRef = adminDb.collection("documents").doc(roomId);
+    const document = await documentRef.get();
 
-    const query = await adminDb
-      .collectionGroup("rooms")
-      .where("roomId", "==", roomId)
-      .get();
-
-    const batch = adminDb.batch();
-
-    query.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
+    if (!document.exists) {
+      throw new Error("Document not found");
+    }
 
     await liveblocks.deleteRoom(roomId);
 
-    return {
-      success: true,
-    };
+    const memberships = await adminDb
+      .collectionGroup("rooms")
+      .where("roomId", "==", roomId)
+      .get();
+    const batch = adminDb.batch();
+
+    memberships.docs.forEach((room) => batch.delete(room.ref));
+    batch.delete(documentRef);
+    await batch.commit();
+
+    return { success: true };
   } catch (error) {
     console.error("Error deleting document:", error);
-
-    return {
-      success: false,
-    };
+    return { success: false };
   }
 }
 
@@ -261,40 +226,35 @@ export async function inviteUserToDocument(
   email: string
 ) {
   try {
-    const { userId } = await auth();
+    const { email: currentUserEmail } = await getAuthenticatedUser();
+    const currentMembership = await findRoomMembership(
+      currentUserEmail,
+      roomId
+    );
 
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-
-    const user = await currentUser();
-
-    const currentUserEmail =
-      user?.emailAddresses?.[0]?.emailAddress;
-
-    if (!currentUserEmail) {
-      throw new Error("Current user email not found");
+    if (!currentMembership || currentMembership.data().role !== "owner") {
+      throw new Error("Only the document owner can invite users");
     }
 
     const invitedEmail = email.trim().toLowerCase();
 
-    if (!invitedEmail) {
-      throw new Error("Email is required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invitedEmail)) {
+      throw new Error("A valid email address is required");
     }
 
-    // Check current user's access
-    const currentUserRoom = await adminDb
-      .collection("users")
-      .doc(currentUserEmail)
-      .collection("rooms")
-      .doc(roomId)
-      .get();
-
-    if (!currentUserRoom.exists) {
-      throw new Error("You don't have access to this document");
+    if (invitedEmail === currentUserEmail) {
+      throw new Error("The document owner already has access");
     }
 
-    // Add invited user as editor
+    const existingMembership = await findRoomMembership(
+      invitedEmail,
+      roomId
+    );
+
+    if (existingMembership) {
+      return { success: true };
+    }
+
     await adminDb
       .collection("users")
       .doc(invitedEmail)
@@ -307,15 +267,10 @@ export async function inviteUserToDocument(
         roomId,
       });
 
-    return {
-      success: true,
-    };
+    return { success: true };
   } catch (error) {
     console.error("Error inviting user:", error);
-
-    return {
-      success: false,
-    };
+    return { success: false };
   }
 }
 
@@ -324,75 +279,33 @@ export async function removeUserFromDocument(
   email: string
 ) {
   try {
-    // Check authentication
-    const { userId } = await auth();
+    const { email: currentUserEmail } = await getAuthenticatedUser();
+    const currentMembership = await findRoomMembership(
+      currentUserEmail,
+      roomId
+    );
 
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-
-    // Get current user
-    const user = await currentUser();
-
-    const currentUserEmail =
-      user?.emailAddresses?.[0]?.emailAddress;
-
-    if (!currentUserEmail) {
-      throw new Error("Current user email not found");
+    if (!currentMembership || currentMembership.data().role !== "owner") {
+      throw new Error("Only the document owner can remove users");
     }
 
     const targetEmail = email.trim().toLowerCase();
 
-    // Check current user
-    const currentUserRoom = await adminDb
-      .collection("users")
-      .doc(currentUserEmail)
-      .collection("rooms")
-      .doc(roomId)
-      .get();
-
-    if (!currentUserRoom.exists) {
-      throw new Error("You don't have access to this document");
+    if (!targetEmail || targetEmail === currentUserEmail) {
+      throw new Error("The document owner cannot be removed");
     }
 
-    // Only owner can remove users
-    if (currentUserRoom.data()?.role !== "owner") {
-      throw new Error("Only the owner can remove users");
+    const targetMembership = await findRoomMembership(targetEmail, roomId);
+
+    if (!targetMembership || targetMembership.data().role === "owner") {
+      throw new Error("The document owner cannot be removed");
     }
 
-    // Check target user's room
-    const targetRoom = await adminDb
-      .collection("users")
-      .doc(targetEmail)
-      .collection("rooms")
-      .doc(roomId)
-      .get();
+    await targetMembership.ref.delete();
 
-    if (!targetRoom.exists) {
-      throw new Error("User is not a member of this document");
-    }
-
-    // Don't allow owner to remove themselves
-    if (targetRoom.data()?.role === "owner") {
-      throw new Error("Owner cannot be removed");
-    }
-
-    // Remove user
-    await adminDb
-      .collection("users")
-      .doc(targetEmail)
-      .collection("rooms")
-      .doc(roomId)
-      .delete();
-
-    return {
-      success: true,
-    };
+    return { success: true };
   } catch (error) {
     console.error("Error removing user:", error);
-
-    return {
-      success: false,
-    };
+    return { success: false };
   }
 }

@@ -1,56 +1,57 @@
 "use client";
+import { FormEvent, useState, useTransition } from "react";
 import { Button } from "./ui/button";
-import { useState, useTransition } from "react";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { usePathname, useRouter } from "next/navigation";
-import { deleteDocument, inviteUserToDocument } from "@/actions/action";
+import { usePathname } from "next/navigation";
+import { inviteUserToDocument } from "@/actions/action";
 import { toast } from "sonner";
 import { Input } from "./ui/input";
 
 function InviteUser() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [email,setEmail]=useState("");
+  const [email, setEmail] = useState("");
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleInvite = async (e: FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const roomId = pathname.split("/").pop();
-  if (!roomId) return;
-  
+    const roomId = pathname.split("/").pop();
+    if (!roomId) {
+      toast.error("Could not determine the document to share.");
+      return;
+    }
+
     startTransition(async () => {
       try {
-        const { success } = await inviteUserToDocument(roomId,email);
+        const { success } = await inviteUserToDocument(roomId, email);
 
         if (success) {
           setIsOpen(false);
-          setEmail('')
-          toast.success("User Added to Room Succesfully!")
+          setEmail("");
+          toast.success("User added to the document.");
         } else {
-           toast.error("Failed to add user to room!");
+          toast.error("Could not invite this user. Check the email and your access.");
         }
-      } catch (error) {
-        console.error("Failed to delete document:", error);
+      } catch (inviteError) {
+        console.error("Failed to invite user:", inviteError);
+        toast.error("Could not invite this user.");
       }
     });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Button asChild variant="outline">
-        <DialogTrigger>Invite</DialogTrigger>
-      </Button>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline">Invite</Button>
+      </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
@@ -61,20 +62,19 @@ function InviteUser() {
           </DialogDescription>
         </DialogHeader>
 
-       <form className="flex gap-2" onSubmit={handleInvite}>
-      <Input
-        type="email"
-        placeholder="Email"
-        className="w-full"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <Button type="submit" disabled={!email || isPending}>
-        {isPending ? "Inviting..." : "Invite"}
-      </Button>
-    </form>
-
-       
+        <form className="flex gap-2" onSubmit={handleInvite}>
+          <Input
+            type="email"
+            placeholder="Email"
+            className="w-full"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Button type="submit" disabled={!email || isPending}>
+            {isPending ? "Inviting..." : "Invite"}
+          </Button>
+        </form>
 
       </DialogContent>
     </Dialog>

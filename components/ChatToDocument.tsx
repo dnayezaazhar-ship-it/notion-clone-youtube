@@ -19,7 +19,7 @@ import { BlockNoteEditor } from "@blocknote/core";
 import Markdown from "react-markdown";
 
 type ChatToDocumentProps = {
-  editor: BlockNoteEditor<any, any, any>;
+  editor: BlockNoteEditor;
 };
 
 function ChatToDocument({ editor }: ChatToDocumentProps) {
@@ -90,7 +90,7 @@ function ChatToDocument({ editor }: ChatToDocumentProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-150">
         <DialogHeader>
           <DialogTitle>Chat to Document</DialogTitle>
 
@@ -113,7 +113,7 @@ function ChatToDocument({ editor }: ChatToDocumentProps) {
         {/* GPT Answer */}
         {(answer || isPending) && (
           <div className="flex max-h-96 gap-3 overflow-y-auto rounded-md bg-gray-100 p-5">
-            <BotIcon className="h-6 w-6 flex-shrink-0" />
+            <BotIcon className="h-6 w-6 shrink-0" />
 
             <div className="flex-1">
               <p className="font-bold">
@@ -158,4 +158,3 @@ function ChatToDocument({ editor }: ChatToDocumentProps) {
 }
 
 export default ChatToDocument;
-
