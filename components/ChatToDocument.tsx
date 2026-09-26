@@ -46,19 +46,16 @@ function ChatToDocument({ editor }: ChatToDocumentProps) {
         // Get current document data from BlockNote
         const documentData = JSON.stringify(editor.document);
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL}/chatToDocument`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              documentData,
-              question: currentQuestion,
-            }),
-          }
-        );
+        const response = await fetch("/chatToDocument", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            documentData,
+            question: currentQuestion,
+          }),
+        });
 
         const data = await response.json();
 

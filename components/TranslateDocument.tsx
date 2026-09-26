@@ -113,26 +113,16 @@ function TranslateDocument({ editor }: TranslateDocumentProps) {
           return;
         }
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-
-        if (!baseUrl) {
-          toast.error("NEXT_PUBLIC_BASE_URL is not configured.");
-          return;
-        }
-
-        const response = await fetch(
-          `${baseUrl.replace(/\/$/, "")}/translateDocument`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              documentData,
-              targetLang: language,
-            }),
-          }
-        );
+        const response = await fetch("/translateDocument", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            documentData,
+            targetLang: language,
+          }),
+        });
 
         const responseText = await response.text();
 
